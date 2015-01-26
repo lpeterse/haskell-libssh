@@ -27,13 +27,15 @@ module SSH.Server (
   , ssh_bind_new
   , ssh_bind_free
   , ssh_bind_options_set
-  , ssh_bind_options_set_log_verbosity
   , ssh_bind_listen
 
   -- * Higher-level functions
   , ErrorCode (..)
+  , LogVerbosity (..)
   , getError
   , getErrorCode
+
+  , setLogVerbosity
   ) where
 
 import Control.Applicative
@@ -81,7 +83,7 @@ newtype SSH_BIND_OPTIONS_E = SSH_BIND_OPTIONS_E CInt
     ssh_BIND_OPTIONS_LOG_VERBOSITY  = SSH_BIND_OPTIONS_LOG_VERBOSITY
 }
 
-newtype SSH_LOG_E = SSH_LOG_E CInt
+newtype SSH_LOG_E = SSH_LOG_E { ssh_log_e :: CInt }
 #{enum SSH_LOG_E, SSH_LOG_E,
     ssh_LOG_NOLOG = SSH_LOG_NOLOG,
     ssh_LOG_WARNING = SSH_LOG_WARNING,
@@ -89,14 +91,6 @@ newtype SSH_LOG_E = SSH_LOG_E CInt
     ssh_LOG_PACKET = SSH_LOG_PACKET,
     ssh_LOG_FUNCTIONS = SSH_LOG_FUNCTIONS
 }
-
-ssh_bind_options_set_log_verbosity :: Ptr SSH_BIND -> SSH_LOG_E -> IO CInt
-ssh_bind_options_set_log_verbosity b (SSH_LOG_E i)
-  = do ptr <- malloc
-       poke ptr i
-       result <- ssh_bind_options_set b ssh_BIND_OPTIONS_LOG_VERBOSITY ptr
-       free ptr
-       return result
 
 foreign import ccall unsafe "libssh/server.h ssh_get_error"
   ssh_bind_error :: Ptr SSH_BIND -> IO CString
@@ -124,6 +118,28 @@ data ErrorCode
    | RequestDenied -- ^ The last request was denied but situation is recoverable.
    | Fatal         -- ^ A fatal error occurred. This could be an unexpected disconnection.
    deriving (Eq, Show)
+
+data LogVerbosity
+   = NoLog
+   | Warning
+   | Protocol
+   | Packet
+   | Functions
+   deriving (Eq, Show)
+
+setLogVerbosity ::  LogVerbosity -> Server -> IO CInt
+setLogVerbosity verbosity bind
+  = do ptr <- malloc :: IO (Ptr CInt)
+       poke ptr $ ssh_log_e
+                $ case verbosity of
+                    NoLog     -> ssh_LOG_NOLOG
+                    Warning   -> ssh_LOG_WARNING
+                    Protocol  -> ssh_LOG_PROTOCOL
+                    Packet    -> ssh_LOG_PACKET
+                    Functions -> ssh_LOG_FUNCTIONS
+       result <- ssh_bind_options_set bind ssh_BIND_OPTIONS_LOG_VERBOSITY ptr
+       free ptr
+       return result
 
 -- | Retrieve the error text message from the last error.
 getError     :: Server -> IO String
