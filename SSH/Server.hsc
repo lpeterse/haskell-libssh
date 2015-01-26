@@ -34,6 +34,8 @@ module SSH.Server (
   , ssh_new
   , ssh_free
 
+  , ssh_handle_key_exchange
+
   , ssh_get_pubkey_hash
 
   -- * Higher-level functions
@@ -131,6 +133,9 @@ foreign import ccall unsafe "libssh/server.h ssh_bind_accept"
 foreign import ccall unsafe "libssh/libssh.h ssh_get_pubkey_hash"
   ssh_get_pubkey_hash :: Ptr Session -> Ptr (Ptr CChar) -> IO CInt
 
+foreign import ccall unsafe "libssh/server.h ssh_handle_key_exchange"
+  ssh_handle_key_exchange :: Ptr Session -> IO CInt
+
 foreign import ccall unsafe "libssh/libssh.h ssh_new"
   ssh_new :: IO (Ptr Session)
 
@@ -162,6 +167,7 @@ getPubkeyHash session
          then return ""
          else do cstr <- peek ptr
                  peekCStringLen (cstr, fromIntegral len)
+
 
 
 setBindPort :: Word16 -> Server -> IO CInt
