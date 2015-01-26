@@ -22,26 +22,39 @@ module SSH.Server (
   , ssh_LOG_PACKET
   , ssh_LOG_FUNCTIONS
 
-  , ssh_bind_error
+  , ssh_error
+  , ssh_error_code
 
   , ssh_bind_new
   , ssh_bind_free
   , ssh_bind_options_set
   , ssh_bind_listen
+  , ssh_bind_accept
+
+  , ssh_new
+  , ssh_free
+
+  , ssh_get_pubkey_hash
 
   -- * Higher-level functions
   , ErrorCode (..)
   , LogVerbosity (..)
   , getError
   , getErrorCode
+  , getBindError
+  , getBindErrorCode
+
+  , getPubkeyHash
 
   , setRsaKey
+  , setBindPort
   , setLogVerbosity
   ) where
 
 import Control.Applicative
 import Control.Exception
 import Data.Bits
+import Data.Word
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe as BS
@@ -71,6 +84,7 @@ version  = concat
              ]
 
 data SSH_BIND
+data Session
 
 newtype SSH_BIND_OPTIONS_E = SSH_BIND_OPTIONS_E CInt
 #{enum SSH_BIND_OPTIONS_E, SSH_BIND_OPTIONS_E,
@@ -94,10 +108,10 @@ newtype SSH_LOG_E = SSH_LOG_E { ssh_log_e :: CInt }
 }
 
 foreign import ccall unsafe "libssh/server.h ssh_get_error"
-  ssh_bind_error :: Ptr SSH_BIND -> IO CString
+  ssh_error :: Ptr a -> IO CString
 
 foreign import ccall unsafe "libssh/server.h ssh_get_error_code"
-  ssh_bind_error_code :: Ptr SSH_BIND -> IO CInt
+  ssh_error_code :: Ptr a -> IO CInt
 
 foreign import ccall unsafe "libssh/server.h ssh_bind_new"
   ssh_bind_new :: IO (Ptr SSH_BIND)
@@ -111,8 +125,20 @@ foreign import ccall unsafe "libssh/server.h ssh_bind_options_set"
 foreign import ccall unsafe "libssh/server.h ssh_bind_listen"
   ssh_bind_listen :: Ptr SSH_BIND -> IO CInt
 
+foreign import ccall unsafe "libssh/server.h ssh_bind_accept"
+  ssh_bind_accept :: Ptr SSH_BIND -> Ptr Session -> IO CInt
+
+foreign import ccall unsafe "libssh/libssh.h ssh_get_pubkey_hash"
+  ssh_get_pubkey_hash :: Ptr Session -> Ptr (Ptr CChar) -> IO CInt
+
+foreign import ccall unsafe "libssh/libssh.h ssh_new"
+  ssh_new :: IO (Ptr Session)
+
+foreign import ccall unsafe "libssh/libssh.h ssh_free"
+  ssh_free :: Ptr Session -> IO ()
 
 type Server = Ptr SSH_BIND
+
 
 data ErrorCode
    = NoError       -- ^ No error occured.
@@ -127,6 +153,24 @@ data LogVerbosity
    | Packet
    | Functions
    deriving (Eq, Show)
+
+getPubkeyHash :: Ptr Session -> IO String
+getPubkeyHash session
+  = do ptr <- malloc :: IO (Ptr (Ptr CChar))
+       len <- ssh_get_pubkey_hash session ptr
+       if len < 0
+         then return ""
+         else do cstr <- peek ptr
+                 peekCStringLen (cstr, fromIntegral len)
+
+
+setBindPort :: Word16 -> Server -> IO CInt
+setBindPort port bind
+  = do ptr <- malloc :: IO (Ptr CInt)
+       poke ptr (fromIntegral port)
+       result <- ssh_bind_options_set bind ssh_BIND_OPTIONS_BINDPORT ptr
+       free ptr
+       return result
 
 setRsaKey :: String -> Server -> IO CInt
 setRsaKey path bind
@@ -151,14 +195,28 @@ setLogVerbosity verbosity bind
        return result
 
 -- | Retrieve the error text message from the last error.
-getError     :: Server -> IO String
-getError bind
-  = ssh_bind_error bind >>= peekCString
+getError     :: Ptr Session -> IO String
+getError session
+  = ssh_error session >>= peekCString
 
 -- | Retrieve the error code from the last error.
-getErrorCode :: Server -> IO ErrorCode
-getErrorCode bind
-  = do code <- ssh_bind_error_code bind
+getErrorCode :: Ptr Session -> IO ErrorCode
+getErrorCode session
+  = do code <- ssh_error_code session
+       return $ case code of
+        (#const SSH_NO_ERROR)       -> NoError
+        (#const SSH_REQUEST_DENIED) -> RequestDenied
+        _                           -> Fatal
+
+-- | Retrieve the error text message from the last error.
+getBindError     :: Server -> IO String
+getBindError bind
+  = ssh_error bind >>= peekCString
+
+-- | Retrieve the error code from the last error.
+getBindErrorCode :: Server -> IO ErrorCode
+getBindErrorCode bind
+  = do code <- ssh_error_code bind
        return $ case code of
         (#const SSH_NO_ERROR)       -> NoError
         (#const SSH_REQUEST_DENIED) -> RequestDenied
