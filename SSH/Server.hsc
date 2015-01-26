@@ -22,11 +22,18 @@ module SSH.Server (
   , ssh_LOG_PACKET
   , ssh_LOG_FUNCTIONS
 
+  , ssh_bind_error
+
   , ssh_bind_new
   , ssh_bind_free
   , ssh_bind_options_set
   , ssh_bind_options_set_log_verbosity
   , ssh_bind_listen
+
+  -- * Higher-level functions
+  , ErrorCode (..)
+  , getError
+  , getErrorCode
   ) where
 
 import Control.Applicative
@@ -91,6 +98,12 @@ ssh_bind_options_set_log_verbosity b (SSH_LOG_E i)
        free ptr
        return result
 
+foreign import ccall unsafe "libssh/server.h ssh_get_error"
+  ssh_bind_error :: Ptr SSH_BIND -> IO CString
+
+foreign import ccall unsafe "libssh/server.h ssh_get_error_code"
+  ssh_bind_error_code :: Ptr SSH_BIND -> IO CInt
+
 foreign import ccall unsafe "libssh/server.h ssh_bind_new"
   ssh_bind_new :: IO (Ptr SSH_BIND)
 
@@ -104,4 +117,24 @@ foreign import ccall unsafe "libssh/server.h ssh_bind_listen"
   ssh_bind_listen :: Ptr SSH_BIND -> IO CInt
 
 
+type Server = Ptr SSH_BIND
 
+data ErrorCode
+   = NoError       -- ^ No error occured.
+   | RequestDenied -- ^ The last request was denied but situation is recoverable.
+   | Fatal         -- ^ A fatal error occurred. This could be an unexpected disconnection.
+   deriving (Eq, Show)
+
+-- | Retrieve the error text message from the last error.
+getError     :: Server -> IO String
+getError bind
+  = ssh_bind_error bind >>= peekCString
+
+-- | Retrieve the error code from the last error.
+getErrorCode :: Server -> IO ErrorCode
+getErrorCode bind
+  = do code <- ssh_bind_error_code bind
+       return $ case code of
+        (#const SSH_NO_ERROR)       -> NoError
+        (#const SSH_REQUEST_DENIED) -> RequestDenied
+        _                           -> Fatal
