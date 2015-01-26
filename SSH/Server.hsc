@@ -35,6 +35,7 @@ module SSH.Server (
   , getError
   , getErrorCode
 
+  , setRsaKey
   , setLogVerbosity
   ) where
 
@@ -127,6 +128,14 @@ data LogVerbosity
    | Functions
    deriving (Eq, Show)
 
+setRsaKey :: String -> Server -> IO CInt
+setRsaKey path bind
+  = do ptr <- newCString path
+       result <- ssh_bind_options_set bind ssh_BIND_OPTIONS_RSAKEY ptr
+       free ptr
+       return result
+
+-- | Set the session logging verbosity.
 setLogVerbosity ::  LogVerbosity -> Server -> IO CInt
 setLogVerbosity verbosity bind
   = do ptr <- malloc :: IO (Ptr CInt)
