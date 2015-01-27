@@ -1,12 +1,11 @@
 {-# LANGUAGE ForeignFunctionInterface, CPP, EmptyDataDecls #-}
 
-module SSH.Server (
+module SSH.LibSSH.Server (
     version
 
-  , Bind ()
-  , Session ()
-  , Message ()
-
+  , Bind
+  , Session
+  , Message
 
   -- * Enum values
   -- ** Bind Options
@@ -21,7 +20,7 @@ module SSH.Server (
   , ssh_BIND_OPTIONS_LOG_VERBOSITY
 
   -- ** Log
-  , SSH_LOG_E
+  , SSH_LOG_E (..)
   , ssh_LOG_NOLOG
   , ssh_LOG_WARNING
   , ssh_LOG_PROTOCOL
@@ -29,12 +28,23 @@ module SSH.Server (
   , ssh_LOG_FUNCTIONS
 
   -- ** Request
-  , SSH_REQUEST_E
+  , SSH_REQUEST_E (..)
   , ssh_REQUEST_AUTH
   , ssh_REQUEST_CHANNEL_OPEN
   , ssh_REQUEST_CHANNEL
   , ssh_REQUEST_SERVICE
   , ssh_REQUEST_GLOBAL
+
+  , ssh_AUTH_METHOD_UNKNOWN
+  , ssh_AUTH_METHOD_NONE
+  , ssh_AUTH_METHOD_PASSWORD
+  , ssh_AUTH_METHOD_PUBLICKEY
+  , ssh_AUTH_METHOD_HOSTBASED
+  , ssh_AUTH_METHOD_INTERACTIVE
+
+  , ssh_NO_ERROR
+  , ssh_REQUEST_DENIED
+  , ssh_FATAL
 
   , ssh_error
   , ssh_error_code
@@ -56,51 +66,21 @@ module SSH.Server (
 
   , ssh_get_pubkey_hash
 
-  -- * Higher-level functions
-  , ErrorCode (..)
-  , LogVerbosity (..)
-  , getError
-  , getErrorCode
-  , getBindError
-  , getBindErrorCode
-
-  , getPubkeyHash
-
-  , setRsaKey
-  , setBindPort
-  , setLogVerbosity
   ) where
 
-import Control.Applicative
-import Control.Exception
-import Data.Bits
-import Data.Word
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Internal as BS
-import qualified Data.ByteString.Unsafe as BS
-import Data.Typeable
-import Data.Int
 import Foreign.C
-import Foreign.StablePtr
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array
-import Foreign.Storable
 import Foreign.Ptr
-import Foreign.ForeignPtr
-import Foreign.Marshal.Alloc
-import Prelude hiding (catch)
---import Debug.Trace
 
 #include "libssh/libssh.h"
 #include "libssh/server.h"
 
 version :: String
 version  = concat
-             [ show (#const LIBSSH_VERSION_MAJOR)
+             [ show ((#const LIBSSH_VERSION_MAJOR) :: Int)
              , "."
-             , show (#const LIBSSH_VERSION_MINOR)
+             , show ((#const LIBSSH_VERSION_MINOR) :: Int)
              , "."
-             , show (#const LIBSSH_VERSION_MICRO)
+             , show ((#const LIBSSH_VERSION_MICRO) :: Int)
              ]
 
 data Bind
@@ -149,6 +129,13 @@ ssh_AUTH_METHOD_HOSTBASED   :: CInt
 ssh_AUTH_METHOD_HOSTBASED    = #const SSH_AUTH_METHOD_HOSTBASED
 ssh_AUTH_METHOD_INTERACTIVE :: CInt
 ssh_AUTH_METHOD_INTERACTIVE  = #const SSH_AUTH_METHOD_INTERACTIVE
+
+ssh_NO_ERROR       :: CInt
+ssh_NO_ERROR        = #const SSH_NO_ERROR
+ssh_REQUEST_DENIED :: CInt
+ssh_REQUEST_DENIED  = #const SSH_REQUEST_DENIED
+ssh_FATAL  :: CInt
+ssh_FATAL   = #const SSH_FATAL
 
 foreign import ccall unsafe "libssh/server.h ssh_get_error"
   ssh_error :: Ptr a -> IO CString
@@ -200,88 +187,3 @@ foreign import ccall unsafe "libssh/libssh.h ssh_new"
 foreign import ccall unsafe "libssh/libssh.h ssh_free"
   ssh_free :: Ptr Session -> IO ()
 
-type Server = Ptr Bind
-
-
-data ErrorCode
-   = NoError       -- ^ No error occured.
-   | RequestDenied -- ^ The last request was denied but situation is recoverable.
-   | Fatal         -- ^ A fatal error occurred. This could be an unexpected disconnection.
-   deriving (Eq, Show)
-
-data LogVerbosity
-   = NoLog
-   | Warning
-   | Protocol
-   | Packet
-   | Functions
-   deriving (Eq, Show)
-
-getPubkeyHash :: Ptr Session -> IO String
-getPubkeyHash session
-  = do ptr <- malloc :: IO (Ptr (Ptr CChar))
-       len <- ssh_get_pubkey_hash session ptr
-       if len < 0
-         then return ""
-         else do cstr <- peek ptr
-                 peekCStringLen (cstr, fromIntegral len)
-
-
-
-setBindPort :: Word16 -> Server -> IO CInt
-setBindPort port bind
-  = do ptr <- malloc :: IO (Ptr CInt)
-       poke ptr (fromIntegral port)
-       result <- ssh_bind_options_set bind ssh_BIND_OPTIONS_BINDPORT ptr
-       free ptr
-       return result
-
-setRsaKey :: String -> Server -> IO CInt
-setRsaKey path bind
-  = do ptr <- newCString path
-       result <- ssh_bind_options_set bind ssh_BIND_OPTIONS_RSAKEY ptr
-       free ptr
-       return result
-
--- | Set the session logging verbosity.
-setLogVerbosity ::  LogVerbosity -> Server -> IO CInt
-setLogVerbosity verbosity bind
-  = do ptr <- malloc :: IO (Ptr CInt)
-       poke ptr $ ssh_log_e
-                $ case verbosity of
-                    NoLog     -> ssh_LOG_NOLOG
-                    Warning   -> ssh_LOG_WARNING
-                    Protocol  -> ssh_LOG_PROTOCOL
-                    Packet    -> ssh_LOG_PACKET
-                    Functions -> ssh_LOG_FUNCTIONS
-       result <- ssh_bind_options_set bind ssh_BIND_OPTIONS_LOG_VERBOSITY ptr
-       free ptr
-       return result
-
--- | Retrieve the error text message from the last error.
-getError     :: Ptr Session -> IO String
-getError session
-  = ssh_error session >>= peekCString
-
--- | Retrieve the error code from the last error.
-getErrorCode :: Ptr Session -> IO ErrorCode
-getErrorCode session
-  = do code <- ssh_error_code session
-       return $ case code of
-        (#const SSH_NO_ERROR)       -> NoError
-        (#const SSH_REQUEST_DENIED) -> RequestDenied
-        _                           -> Fatal
-
--- | Retrieve the error text message from the last error.
-getBindError     :: Server -> IO String
-getBindError bind
-  = ssh_error bind >>= peekCString
-
--- | Retrieve the error code from the last error.
-getBindErrorCode :: Server -> IO ErrorCode
-getBindErrorCode bind
-  = do code <- ssh_error_code bind
-       return $ case code of
-        (#const SSH_NO_ERROR)       -> NoError
-        (#const SSH_REQUEST_DENIED) -> RequestDenied
-        _                           -> Fatal
