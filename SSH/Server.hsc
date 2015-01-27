@@ -3,10 +3,14 @@
 module SSH.Server (
     version
 
-  , SSH_BIND ()
-  , SSH_BIND_OPTIONS_E ()
+  , Bind ()
+  , Session ()
+  , Message ()
+
 
   -- * Enum values
+  -- ** Bind Options
+  , SSH_BIND_OPTIONS_E
   , ssh_BIND_OPTIONS_BINDADDR
   , ssh_BIND_OPTIONS_BINDPORT
   , ssh_BIND_OPTIONS_BINDPORT_STR
@@ -16,11 +20,21 @@ module SSH.Server (
   , ssh_BIND_OPTIONS_BANNER
   , ssh_BIND_OPTIONS_LOG_VERBOSITY
 
+  -- ** Log
+  , SSH_LOG_E
   , ssh_LOG_NOLOG
   , ssh_LOG_WARNING
   , ssh_LOG_PROTOCOL
   , ssh_LOG_PACKET
   , ssh_LOG_FUNCTIONS
+
+  -- ** Request
+  , SSH_REQUEST_E
+  , ssh_REQUEST_AUTH
+  , ssh_REQUEST_CHANNEL_OPEN
+  , ssh_REQUEST_CHANNEL
+  , ssh_REQUEST_SERVICE
+  , ssh_REQUEST_GLOBAL
 
   , ssh_error
   , ssh_error_code
@@ -89,7 +103,7 @@ version  = concat
              , show (#const LIBSSH_VERSION_MICRO)
              ]
 
-data SSH_BIND
+data Bind
 data Session
 data Message
 
@@ -143,19 +157,19 @@ foreign import ccall unsafe "libssh/server.h ssh_get_error_code"
   ssh_error_code :: Ptr a -> IO CInt
 
 foreign import ccall unsafe "libssh/server.h ssh_bind_new"
-  ssh_bind_new :: IO (Ptr SSH_BIND)
+  ssh_bind_new :: IO (Ptr Bind)
 
 foreign import ccall unsafe "libssh/server.h ssh_bind_free"
-  ssh_bind_free :: Ptr SSH_BIND -> IO ()
+  ssh_bind_free :: Ptr Bind -> IO ()
 
 foreign import ccall unsafe "libssh/server.h ssh_bind_options_set"
-  ssh_bind_options_set :: Ptr SSH_BIND -> SSH_BIND_OPTIONS_E -> Ptr a -> IO CInt
+  ssh_bind_options_set :: Ptr Bind -> SSH_BIND_OPTIONS_E -> Ptr a -> IO CInt
 
 foreign import ccall unsafe "libssh/server.h ssh_bind_listen"
-  ssh_bind_listen :: Ptr SSH_BIND -> IO CInt
+  ssh_bind_listen :: Ptr Bind -> IO CInt
 
 foreign import ccall unsafe "libssh/server.h ssh_bind_accept"
-  ssh_bind_accept :: Ptr SSH_BIND -> Ptr Session -> IO CInt
+  ssh_bind_accept :: Ptr Bind -> Ptr Session -> IO CInt
 
 foreign import ccall unsafe "libssh/libssh.h ssh_get_pubkey_hash"
   ssh_get_pubkey_hash :: Ptr Session -> Ptr (Ptr CChar) -> IO CInt
@@ -186,7 +200,7 @@ foreign import ccall unsafe "libssh/libssh.h ssh_new"
 foreign import ccall unsafe "libssh/libssh.h ssh_free"
   ssh_free :: Ptr Session -> IO ()
 
-type Server = Ptr SSH_BIND
+type Server = Ptr Bind
 
 
 data ErrorCode
