@@ -134,34 +134,34 @@ ssh_NO_ERROR       :: CInt
 ssh_NO_ERROR        = #const SSH_NO_ERROR
 ssh_REQUEST_DENIED :: CInt
 ssh_REQUEST_DENIED  = #const SSH_REQUEST_DENIED
-ssh_FATAL  :: CInt
-ssh_FATAL   = #const SSH_FATAL
+ssh_FATAL          :: CInt
+ssh_FATAL           = #const SSH_FATAL
 
-foreign import ccall unsafe "libssh/server.h ssh_get_error"
+foreign import ccall safe "libssh/server.h ssh_get_error"
   ssh_error :: Ptr a -> IO CString
 
-foreign import ccall unsafe "libssh/server.h ssh_get_error_code"
+foreign import ccall safe "libssh/server.h ssh_get_error_code"
   ssh_error_code :: Ptr a -> IO CInt
 
-foreign import ccall unsafe "libssh/server.h ssh_bind_new"
+foreign import ccall safe "libssh/server.h ssh_bind_new"
   ssh_bind_new :: IO (Ptr Bind)
 
-foreign import ccall unsafe "libssh/server.h ssh_bind_free"
+foreign import ccall safe "libssh/server.h ssh_bind_free"
   ssh_bind_free :: Ptr Bind -> IO ()
 
-foreign import ccall unsafe "libssh/server.h ssh_bind_options_set"
+foreign import ccall safe "libssh/server.h ssh_bind_options_set"
   ssh_bind_options_set :: Ptr Bind -> SSH_BIND_OPTIONS_E -> Ptr a -> IO CInt
 
-foreign import ccall unsafe "libssh/server.h ssh_bind_listen"
+foreign import ccall safe "libssh/server.h ssh_bind_listen"
   ssh_bind_listen :: Ptr Bind -> IO CInt
 
-foreign import ccall unsafe "libssh/server.h ssh_bind_accept"
+foreign import ccall safe "libssh/server.h ssh_bind_accept"
   ssh_bind_accept :: Ptr Bind -> Ptr Session -> IO CInt
 
-foreign import ccall unsafe "libssh/libssh.h ssh_get_pubkey_hash"
+foreign import ccall safe "libssh/libssh.h ssh_get_pubkey_hash"
   ssh_get_pubkey_hash :: Ptr Session -> Ptr (Ptr CChar) -> IO CInt
 
-foreign import ccall unsafe "libssh/server.h ssh_handle_key_exchange"
+foreign import ccall safe "libssh/server.h ssh_handle_key_exchange"
   ssh_handle_key_exchange :: Ptr Session -> IO CInt
 
 -- | Retrieve a SSH message from a SSH session.
@@ -169,21 +169,21 @@ foreign import ccall unsafe "libssh/server.h ssh_handle_key_exchange"
 -- The SSH message received, NULL in case of error, or timeout elapsed.
 -- This function blocks until a message has been received. 
 -- Better set up a callback if this behavior is unwanted.
-foreign import ccall unsafe "libssh/libssh.h ssh_message_get"
+foreign import ccall safe "libssh/libssh.h ssh_message_get"
   ssh_message_get :: Ptr Session -> IO (Ptr Message)
 
-foreign import ccall unsafe "libssh/libssh.h ssh_message_free"
+foreign import ccall safe "libssh/libssh.h ssh_message_free"
   ssh_message_free :: Ptr Message -> IO ()
 
-foreign import ccall unsafe "libssh/libssh.h ssh_message_type"
+foreign import ccall safe "libssh/libssh.h ssh_message_type"
   ssh_message_type :: Ptr Message -> IO SSH_REQUEST_E
 
-foreign import ccall unsafe "libssh/libssh.h ssh_message_subtype"
+foreign import ccall safe "libssh/libssh.h ssh_message_subtype"
   ssh_message_subtype :: Ptr Message -> IO CInt
 
-foreign import ccall unsafe "libssh/libssh.h ssh_new"
+foreign import ccall safe "libssh/libssh.h ssh_new"
   ssh_new :: IO (Ptr Session)
 
-foreign import ccall unsafe "libssh/libssh.h ssh_free"
+foreign import ccall safe "libssh/libssh.h ssh_free"
   ssh_free :: Ptr Session -> IO ()
 
