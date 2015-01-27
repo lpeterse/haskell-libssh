@@ -26,3 +26,8 @@ library
   default-language:    Haskell2010
   extra-libraries:     ssh
   ghc-options:         -Wall
+
+  c-sources:         cbits/misc.c
+  include-dirs:      include
+  includes:          misc.h
+  install-includes:  misc.h

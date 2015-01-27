@@ -54,6 +54,11 @@ module SSH.LibSSH.Server (
   , ssh_bind_options_set
   , ssh_bind_listen
   , ssh_bind_accept
+  , ssh_bind_set_callbacks
+  , ssh_bind_new_callbacks
+  , ssh_bind_free_callbacks
+
+  , wrapIncomingConnectionCallback
 
   , ssh_new
   , ssh_free
@@ -84,6 +89,8 @@ version  = concat
              ]
 
 data Bind
+data BindCallbacks
+data UserData
 data Session
 data Message
 
@@ -148,6 +155,20 @@ foreign import ccall safe "libssh/server.h ssh_bind_new"
 
 foreign import ccall safe "libssh/server.h ssh_bind_free"
   ssh_bind_free :: Ptr Bind -> IO ()
+
+foreign import ccall safe "libssh/server.h ssh_bind_set_callbacks"
+  ssh_bind_set_callbacks :: Ptr Bind -> Ptr BindCallbacks -> Ptr UserData -> IO ()
+
+type IncomingConnectionCallback = Ptr Bind -> Ptr UserData -> IO ()
+
+foreign import ccall safe "misc.h ssh_bind_new_callbacks"
+  ssh_bind_new_callbacks :: FunPtr IncomingConnectionCallback -> IO (Ptr BindCallbacks)
+
+foreign import ccall "wrapper"
+  wrapIncomingConnectionCallback :: IncomingConnectionCallback -> IO (FunPtr IncomingConnectionCallback)
+
+foreign import ccall safe "misc.h ssh_bind_free_callbacks"
+  ssh_bind_free_callbacks :: Ptr BindCallbacks -> IO ()
 
 foreign import ccall safe "libssh/server.h ssh_bind_options_set"
   ssh_bind_options_set :: Ptr Bind -> SSH_BIND_OPTIONS_E -> Ptr a -> IO CInt
