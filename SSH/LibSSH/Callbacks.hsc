@@ -20,7 +20,7 @@ foreign import ccall "wrapper"
   wrapAuthPasswordCallback :: AuthPasswordCallback -> IO (FunPtr AuthPasswordCallback)
 
 type AuthNoneCallback
-   = Ptr Session -> CString -> IO CInt
+   = Ptr Session -> CString -> Ptr UserData -> IO CInt
 
 foreign import ccall "wrapper"
   wrapAuthNoneCallback :: AuthNoneCallback -> IO (FunPtr AuthNoneCallback)

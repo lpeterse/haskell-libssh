@@ -8,6 +8,7 @@ import Control.Exception
 import Data.Typeable
 
 import Foreign.Ptr
+import Foreign.C.String
 
 import SSH.Server
 import SSH.LibSSH.Server
@@ -106,15 +107,18 @@ forkSession session
          )
         )
   where
-    authPasswordCallback _ _ _ _
+    authPasswordCallback _ user pass _
       = do print "authPasswordCallback"
-           return 0
-    authNoneCallback _ _
+           peekCString user >>= print
+           peekCString pass >>= print
+           return (-1)
+    authNoneCallback _ user _
       = do print "authNoneCallback"
-           return 0
+           peekCString user >>= print
+           return (-1)
     authPubkeyCallback _ _ _ _ _
       = do print "authPubkeyCallback"
-           return 0
+           return (-1)
     serviceRequestCallback _ _ _
       = do print "serviceRequestCallback"
            return 0
