@@ -57,28 +57,33 @@ instance Exception SessionException
 forkSession :: Ptr Session -> IO (Async ())
 forkSession session
   = asyncBound
-  $ ( do putStrLn (show session ++ ": new session thread")
+  $ do event <- ssh_event_new
+       (
+         ( do putStrLn (show session ++ ": new session thread")
 
-         -- The session is not connected before key exchange succeeded.
-         kex <- ssh_handle_key_exchange session
-         when (kex /= 0) $ do
-           throw SessionKeyExchangeFailed
+              -- The session is not connected before key exchange succeeded.
+              kex <- ssh_handle_key_exchange session
+              when (kex /= 0) $ do
+                throw SessionKeyExchangeFailed
 
-         forever $ do
-           -- Check whether the session is (still) connected.
-           con <- ssh_is_connected session
-           when (con /= 1) $ do
-             throw SessionDisconnected
+              forever $ do
+                -- Check whether the session is (still) connected.
+                con <- ssh_is_connected session
+                when (con /= 1) $ do
+                  throw SessionDisconnected
 
-           putStrLn (show session ++ ": session thread alive")
-           threadDelay 5000000
+                ssh_event_add_session event session
+                putStrLn (show session ++ ": session thread alive")
+                ssh_event_dopoll event 10000
 
-           -- testing
-           -- ssh_disconnect session
-         -- Should never the reached.
-         return ()
-    ) `catch` (\e->
-      do print (e :: SessionException)
-    ) `finally` (
-      do ssh_free session
-    )
+                -- testing
+                -- ssh_disconnect session
+              -- Should never the reached.
+              return ()
+         ) `catch` (\e->
+           do print (e :: SessionException)
+         ) `finally` (
+           do ssh_free session
+              ssh_event_free event
+         )
+        )

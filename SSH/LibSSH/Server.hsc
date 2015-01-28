@@ -6,6 +6,7 @@ module SSH.LibSSH.Server (
   , Bind
   , Session
   , Message
+  , UserData
 
   -- * Enum values
   -- ** Bind Options

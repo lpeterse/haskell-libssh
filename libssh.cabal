@@ -19,6 +19,7 @@ library
   exposed-modules:     SSH.Server
                      , SSH.LibSSH.Server
                      , SSH.LibSSH.Session
+                     , SSH.LibSSH.Poll
   -- other-modules:       
   other-extensions:    ForeignFunctionInterface
   build-depends:       base >=4.7 && <5
