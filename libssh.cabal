@@ -20,6 +20,7 @@ library
                      , SSH.LibSSH.Server
                      , SSH.LibSSH.Session
                      , SSH.LibSSH.Poll
+                     , SSH.LibSSH.Callbacks
   -- other-modules:       
   other-extensions:    ForeignFunctionInterface
   build-depends:       base >=4.7 && <5

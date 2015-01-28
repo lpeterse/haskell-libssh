@@ -74,7 +74,7 @@ forkSession session
 
                 ssh_event_add_session event session
                 putStrLn (show session ++ ": session thread alive")
-                ssh_event_dopoll event 10000
+                ssh_event_dopoll event (-1)
 
                 -- testing
                 -- ssh_disconnect session
