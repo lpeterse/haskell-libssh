@@ -72,6 +72,7 @@ forkSession session
                       threadDelay 5000000
                       ssh_disconnect session
     ) `catch` (\e->
+      do print (e :: SessionException)
+    ) `finally` (
       do ssh_free session
-         print (e :: SessionException)
     )
