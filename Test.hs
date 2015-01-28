@@ -1,7 +1,11 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 module Main where
 
 import Control.Concurrent
 import Control.Monad
+import Control.Exception
+
+import Data.Typeable
 
 import Foreign.Ptr
 
@@ -29,6 +33,7 @@ main
 
        async $ forever 
              $ do print "Wait for incoming connection."
+                  -- this session is freed on exception in 'forkSession'
                   s <- ssh_new
                   ssh_bind_accept b s >>= print
                   a <- forkSession s
@@ -42,17 +47,31 @@ main
 
        return ()
 
+data SessionException
+   = SessionDisconnected
+   | SessionKeyExchangeFailed
+   deriving (Show, Typeable)
+
+instance Exception SessionException
+
 forkSession :: Ptr Session -> IO (Async ())
 forkSession session
   = asyncBound
-  $ do putStrLn (show session ++ ": new session thread")
-       kex <- ssh_handle_key_exchange session
-       putStrLn (show session ++ ": kex " ++ show kex)
-       forever $ do c <- ssh_is_connected session
-                    print "connection"
-                    print c
-                    case c of
-                      1 -> do putStrLn (show session ++ ": session thread alive")
-                      0 -> do putStrLn (show session ++ ": session dead")
-                    threadDelay 5000000
-                    ssh_disconnect session
+  $ ( do putStrLn (show session ++ ": new session thread")
+
+         -- The session is not connected before key exchange succeeded.
+         kex <- ssh_handle_key_exchange session
+         when (kex /= 0) $ do
+           throw SessionKeyExchangeFailed
+
+         forever $ do c <- ssh_is_connected session
+                      case c of
+                       1 -> do putStrLn (show session ++ ": session thread alive")
+                       _ -> throw SessionDisconnected
+                      -- testing
+                      threadDelay 5000000
+                      ssh_disconnect session
+    ) `catch` (\e->
+      do ssh_free session
+         print (e :: SessionException)
+    )
