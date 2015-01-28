@@ -13,3 +13,5 @@ ssh_server_callbacks
                           , ssh_service_request_callback              *cb4
                           , ssh_channel_open_request_session_callback *cb5
                           );
+void
+  ssh_free_server_callbacks(ssh_server_callbacks callbacks);

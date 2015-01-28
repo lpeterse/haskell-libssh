@@ -52,3 +52,6 @@ ssh_bind_callbacks ssh_bind_new_callbacks(ssh_bind_incoming_connection_callback 
 void ssh_bind_free_callbacks(ssh_bind_callbacks callbacks) {
   free(callbacks);
 };
+void ssh_free_server_callbacks(ssh_server_callbacks callbacks) {
+  free(callbacks);
+};

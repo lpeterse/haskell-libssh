@@ -12,6 +12,7 @@ import Foreign.Ptr
 import SSH.Server
 import SSH.LibSSH.Server
 import SSH.LibSSH.Session
+import SSH.LibSSH.Callbacks
 
 import Control.Concurrent.Async
 
@@ -49,6 +50,7 @@ main
 
 data SessionException
    = SessionDisconnected
+   | SessionSetCallbacksFailed
    | SessionKeyExchangeFailed
    deriving (Show, Typeable)
 
@@ -58,8 +60,18 @@ forkSession :: Ptr Session -> IO (Async ())
 forkSession session
   = asyncBound
   $ do event <- ssh_event_new
+       cb1   <- wrapAuthPasswordCallback              authPasswordCallback
+       cb2   <- wrapAuthNoneCallback                  authNoneCallback
+       cb3   <- wrapAuthPubkeyCallback                authPubkeyCallback
+       cb4   <- wrapServiceRequestCallback            serviceRequestCallback
+       cb5   <- wrapChannelOpenRequestSessionCallback channelOpenRequestSessionCallback
+       cbs   <- ssh_new_server_callbacks nullPtr cb1 cb2 cb3 cb4 cb5
        (
          ( do putStrLn (show session ++ ": new session thread")
+
+              scb <- ssh_set_server_callbacks session cbs
+              when (scb /= 0) $ do
+                throw SessionSetCallbacksFailed
 
               -- The session is not connected before key exchange succeeded.
               kex <- ssh_handle_key_exchange session
@@ -85,5 +97,27 @@ forkSession session
          ) `finally` (
            do ssh_free session
               ssh_event_free event
+              ssh_free_server_callbacks cbs
+              freeHaskellFunPtr cb1
+              freeHaskellFunPtr cb2
+              freeHaskellFunPtr cb3
+              freeHaskellFunPtr cb4
+              freeHaskellFunPtr cb5
          )
         )
+  where
+    authPasswordCallback _ _ _ _
+      = do print "authPasswordCallback"
+           return 0
+    authNoneCallback _ _
+      = do print "authNoneCallback"
+           return 0
+    authPubkeyCallback _ _ _ _ _
+      = do print "authPubkeyCallback"
+           return 0
+    serviceRequestCallback _ _ _
+      = do print "serviceRequestCallback"
+           return 0
+    channelOpenRequestSessionCallback _ _
+      = do print "channelOpenRequestSessionCallback"
+           return nullPtr
