@@ -64,13 +64,19 @@ forkSession session
          when (kex /= 0) $ do
            throw SessionKeyExchangeFailed
 
-         forever $ do c <- ssh_is_connected session
-                      case c of
-                       1 -> do putStrLn (show session ++ ": session thread alive")
-                       _ -> throw SessionDisconnected
-                      -- testing
-                      threadDelay 5000000
-                      ssh_disconnect session
+         forever $ do
+           -- Check whether the session is (still) connected.
+           con <- ssh_is_connected session
+           when (con /= 1) $ do
+             throw SessionDisconnected
+
+           putStrLn (show session ++ ": session thread alive")
+           threadDelay 5000000
+
+           -- testing
+           -- ssh_disconnect session
+         -- Should never the reached.
+         return ()
     ) `catch` (\e->
       do print (e :: SessionException)
     ) `finally` (
