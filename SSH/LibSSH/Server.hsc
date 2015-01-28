@@ -60,6 +60,7 @@ module SSH.LibSSH.Server (
 
   , wrapIncomingConnectionCallback
 
+  , ssh_init
   , ssh_new
   , ssh_free
 
@@ -143,6 +144,9 @@ ssh_REQUEST_DENIED :: CInt
 ssh_REQUEST_DENIED  = #const SSH_REQUEST_DENIED
 ssh_FATAL          :: CInt
 ssh_FATAL           = #const SSH_FATAL
+
+foreign import ccall safe "libssh/libssh.h ssh_init"
+  ssh_init :: IO CInt
 
 foreign import ccall safe "libssh/server.h ssh_get_error"
   ssh_error :: Ptr a -> IO CString
