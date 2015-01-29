@@ -14,7 +14,6 @@ data Channel
 data Data
 
 data ServerCallbacks
-data ChannelCallbacks
 
 type AuthPasswordCallback
    = Ptr Session -> CString -> CString -> Ptr UserData -> IO CInt
@@ -66,6 +65,74 @@ foreign import ccall safe "libssh/server.h ssh_set_server_callbacks"
 -- CHANELL CALLBACKS
 ------------------------------------
 
+data ChannelCallbacks
+
+data ChannelCallbacksSet
+   = ChannelCallbacksSet
+     { channelDataCallback :: ChannelDataCallback
+     , channelEofCallback :: ChannelEofCallback
+     , channelCloseCallback :: ChannelCloseCallback
+     , channelSignalCallback :: ChannelSignalCallback
+     , channelExitStatusCallback :: ChannelExitStatusCallback
+     , channelExitSignalCallback :: ChannelExitSignalCallback
+     , channelPtyRequestCallback :: ChannelPtyRequestCallback
+     , channelShellRequestCallback :: ChannelShellRequestCallback
+     , channelAuthAgentReqCallback :: ChannelAuthAgentReqCallback
+     , channelX11ReqCallback :: ChannelX11ReqCallback
+     , channelPtyWindowChangeCallback :: ChannelPtyWindowChangeCallback
+     , channelExecRequestCallback :: ChannelExecRequestCallback
+     , channelEnvRequestCallback :: ChannelEnvRequestCallback
+     , channelSubsystemRequestCallback :: ChannelSubsystemRequestCallback
+     }
+
+defaultChannelCallbacksSet :: ChannelCallbacksSet
+defaultChannelCallbacksSet
+   = ChannelCallbacksSet
+     { channelDataCallback             = onChannelDataCallback
+     , channelEofCallback              = onChannelEofCallback
+     , channelCloseCallback            = onChannelCloseCallback
+     , channelSignalCallback           = onChannelSignalCallback
+     , channelExitStatusCallback       = onChannelExitStatusCallback
+     , channelExitSignalCallback       = onChannelExitSignalCallback
+     , channelPtyRequestCallback       = onChannelPtyRequestCallback
+     , channelShellRequestCallback     = onChannelShellRequestCallback
+     , channelAuthAgentReqCallback     = onChannelAuthAgentReqCallback
+     , channelX11ReqCallback           = onChannelX11ReqCallback
+     , channelPtyWindowChangeCallback  = onChannelPtyWindowChangeCallback
+     , channelExecRequestCallback      = onChannelExecRequestCallback
+     , channelEnvRequestCallback       = onChannelEnvRequestCallback
+     , channelSubsystemRequestCallback = onChannelSubsystemRequestCallback
+     }
+  where
+    onChannelDataCallback _ _ _ _ _ _
+      = return 0
+    onChannelEofCallback _ _ _
+      = return ()
+    onChannelCloseCallback _ _ _
+      = return ()
+    onChannelSignalCallback _ _ _ _
+      = return ()
+    onChannelExitStatusCallback _ _ _ _
+      = return ()
+    onChannelExitSignalCallback _ _ _ _ _ _ _
+      = return ()
+    onChannelPtyRequestCallback _ _ _ _ _ _ _ _
+      = return (-1)
+    onChannelShellRequestCallback _ _ _
+      = return 1
+    onChannelAuthAgentReqCallback _ _ _
+      = return ()
+    onChannelX11ReqCallback _ _ _ _ _ _ _
+      = return ()
+    onChannelPtyWindowChangeCallback _ _ _ _ _ _ _
+      = return (-1)
+    onChannelExecRequestCallback _ _ _ _
+      = return 1
+    onChannelEnvRequestCallback _ _ _ _ _
+      = return 1
+    onChannelSubsystemRequestCallback _ _ _ _
+      = return 1
+
 -- | SSH channel data callback. Called when data is available on a channel
 --
 --   * @param session Current session handler
@@ -85,7 +152,7 @@ type ChannelDataCallback
 --   * @param channel the actual channel
 --   * @param userdata Userdata to be passed to the callback function.
 type ChannelEofCallback
-   = Ptr Session -> Ptr Channel -> Ptr UserData -> IO CInt
+   = Ptr Session -> Ptr Channel -> Ptr UserData -> IO ()
 
 -- | SSH channel close callback. Called when a channel is closed by remote peer
 --
@@ -93,7 +160,7 @@ type ChannelEofCallback
 --   * @param channel the actual channel
 --   * @param userdata Userdata to be passed to the callback function.
 type ChannelCloseCallback
-   = Ptr Session -> Ptr Channel -> Ptr UserData -> IO CInt
+   = Ptr Session -> Ptr Channel -> Ptr UserData -> IO ()
 
 -- | SSH channel signal callback. Called when a channel has received a signal
 --
@@ -102,7 +169,7 @@ type ChannelCloseCallback
 --   * @param signal the signal name (without the SIG prefix)
 --   * @param userdata Userdata to be passed to the callback function.
 type ChannelSignalCallback
-   = Ptr Session -> Ptr Channel -> CChar -> Ptr UserData -> IO CInt
+   = Ptr Session -> Ptr Channel -> CChar -> Ptr UserData -> IO ()
 
 -- |  SSH channel exit status callback. Called when a channel has received an exit status
 --
@@ -110,7 +177,7 @@ type ChannelSignalCallback
 --   * @param channel the actual channel
 --   * @param userdata Userdata to be passed to the callback function.
 type ChannelExitStatusCallback
-   = Ptr Session -> Ptr Channel -> CInt -> Ptr UserData -> IO CInt
+   = Ptr Session -> Ptr Channel -> CInt -> Ptr UserData -> IO ()
 
 -- |  SSH channel exit signal callback. Called when a channel has received an exit signal
 --
@@ -122,7 +189,7 @@ type ChannelExitStatusCallback
 --   * @param lang the language of the description (format: RFC 3066)
 --   * @param userdata Userdata to be passed to the callback function.
 type ChannelExitSignalCallback
-   = Ptr Session -> Ptr Channel -> CChar -> CString -> CInt -> CString -> CString -> Ptr UserData -> IO CInt
+   = Ptr Session -> Ptr Channel -> CString -> CInt -> CString -> CString -> Ptr UserData -> IO ()
 
 -- |  SSH channel PTY request from a client.
 --
