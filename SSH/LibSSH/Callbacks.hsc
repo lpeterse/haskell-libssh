@@ -9,11 +9,12 @@ import SSH.LibSSH.Server
 
 #include "libssh/callbacks.h"
 
-data ServerCallbacks
-data ChannelCallbacks
 data PubKey
 data Channel
 data Data
+
+data ServerCallbacks
+data ChannelCallbacks
 
 type AuthPasswordCallback
    = Ptr Session -> CString -> CString -> Ptr UserData -> IO CInt
@@ -209,6 +210,48 @@ type ChannelEnvRequestCallback
 --   * @returns 1 if the request is denied
 type ChannelSubsystemRequestCallback
    = Ptr Session -> Ptr Channel -> CString -> Ptr UserData -> IO CInt
+
+foreign import ccall "wrapper"
+  wrapChannelDataCallback :: ChannelDataCallback -> IO (FunPtr ChannelDataCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelEofCallback :: ChannelEofCallback -> IO (FunPtr ChannelEofCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelCloseCallback :: ChannelCloseCallback -> IO (FunPtr ChannelCloseCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelSignalCallback :: ChannelSignalCallback -> IO (FunPtr ChannelSignalCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelExitStatusCallback :: ChannelExitStatusCallback -> IO (FunPtr ChannelExitStatusCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelExitSignalCallback :: ChannelExitSignalCallback -> IO (FunPtr ChannelExitSignalCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelPtyRequestCallback :: ChannelPtyRequestCallback -> IO (FunPtr ChannelPtyRequestCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelShellRequestCallback :: ChannelShellRequestCallback -> IO (FunPtr ChannelShellRequestCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelAuthAgentReqCallback :: ChannelAuthAgentReqCallback -> IO (FunPtr ChannelAuthAgentReqCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelX11ReqCallback :: ChannelX11ReqCallback -> IO (FunPtr ChannelX11ReqCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelPtyWindowChangeCallback :: ChannelPtyWindowChangeCallback -> IO (FunPtr ChannelPtyWindowChangeCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelExecRequestCallback :: ChannelExecRequestCallback -> IO (FunPtr ChannelExecRequestCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelEnvRequestCallback :: ChannelEnvRequestCallback -> IO (FunPtr ChannelEnvRequestCallback)
+
+foreign import ccall "wrapper"
+  wrapChannelSubsystemRequestCallback :: ChannelSubsystemRequestCallback -> IO (FunPtr ChannelSubsystemRequestCallback)
 
 foreign import ccall safe "misc.h ssh_new_channel_callbacks"
   ssh_new_channel_callbacks :: Ptr UserData
