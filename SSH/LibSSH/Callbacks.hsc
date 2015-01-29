@@ -6,12 +6,11 @@ import Foreign.C
 import Foreign.Ptr
 
 import SSH.LibSSH.Server
+import SSH.LibSSH.Channel
 
 #include "libssh/callbacks.h"
 
 data PubKey
-data Channel
-data Data
 
 data ServerCallbacks
 
@@ -85,6 +84,43 @@ data ChannelCallbacksSet
      , channelSubsystemRequestCallback :: ChannelSubsystemRequestCallback
      }
 
+-- | Creates a tuple of a ptr to a new ChannelCallbacks struct and an action to free
+--   all allocated memory.
+prepareChannelCallbacks :: Ptr UserData -> ChannelCallbacksSet -> IO (Ptr ChannelCallbacks, IO ())
+prepareChannelCallbacks userdata s
+   = do c1  <- wrapChannelDataCallback              (channelDataCallback             s)
+        c2  <- wrapChannelEofCallback               (channelEofCallback              s)
+        c3  <- wrapChannelCloseCallback             (channelCloseCallback            s)
+        c4  <- wrapChannelSignalCallback            (channelSignalCallback           s)
+        c5  <- wrapChannelExitStatusCallback        (channelExitStatusCallback       s)
+        c6  <- wrapChannelExitSignalCallback        (channelExitSignalCallback       s)
+        c7  <- wrapChannelPtyRequestCallback        (channelPtyRequestCallback       s)
+        c8  <- wrapChannelShellRequestCallback      (channelShellRequestCallback     s)
+        c9  <- wrapChannelAuthAgentReqCallback      (channelAuthAgentReqCallback     s)
+        c10 <- wrapChannelX11ReqCallback            (channelX11ReqCallback           s)
+        c11 <- wrapChannelPtyWindowChangeCallback   (channelPtyWindowChangeCallback  s)
+        c12 <- wrapChannelExecRequestCallback       (channelExecRequestCallback      s)
+        c13 <- wrapChannelEnvRequestCallback        (channelEnvRequestCallback       s)
+        c14 <- wrapChannelSubsystemRequestCallback  (channelSubsystemRequestCallback s)
+        cbs <- ssh_new_channel_callbacks userdata c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14
+        return ( cbs
+               , do freeHaskellFunPtr c1
+                    freeHaskellFunPtr c2
+                    freeHaskellFunPtr c3
+                    freeHaskellFunPtr c4
+                    freeHaskellFunPtr c5
+                    freeHaskellFunPtr c6
+                    freeHaskellFunPtr c7
+                    freeHaskellFunPtr c8
+                    freeHaskellFunPtr c9
+                    freeHaskellFunPtr c10
+                    freeHaskellFunPtr c11
+                    freeHaskellFunPtr c12
+                    freeHaskellFunPtr c13
+                    freeHaskellFunPtr c14
+                    ssh_free_channel_callbacks cbs
+               )
+
 defaultChannelCallbacksSet :: ChannelCallbacksSet
 defaultChannelCallbacksSet
    = ChannelCallbacksSet
@@ -105,33 +141,47 @@ defaultChannelCallbacksSet
      }
   where
     onChannelDataCallback _ _ _ _ _ _
-      = return 0
+      = do print "onChannelDataCallback"
+           return 0
     onChannelEofCallback _ _ _
-      = return ()
+      = do print "onChannelEofCallback"
+           return ()
     onChannelCloseCallback _ _ _
-      = return ()
+      = do print "onChannelCloseCallback"
+           return ()
     onChannelSignalCallback _ _ _ _
-      = return ()
+      = do print "onChannelSignalCallback"
+           return ()
     onChannelExitStatusCallback _ _ _ _
-      = return ()
+      = do print "onChannelExitStatusCallback"
+           return ()
     onChannelExitSignalCallback _ _ _ _ _ _ _
-      = return ()
+      = do print "onChannelExitSignalCallback"
+           return ()
     onChannelPtyRequestCallback _ _ _ _ _ _ _ _
-      = return (-1)
+      = do print "onChannelPtyRequestCallback"
+           return (-1)
     onChannelShellRequestCallback _ _ _
-      = return 1
+      = do print "onChannelShellRequestCallback"
+           return 1
     onChannelAuthAgentReqCallback _ _ _
-      = return ()
+      = do print "onChannelAuthAgentReqCallback"
+           return ()
     onChannelX11ReqCallback _ _ _ _ _ _ _
-      = return ()
+      = do print "onChannelX11ReqCallback"
+           return ()
     onChannelPtyWindowChangeCallback _ _ _ _ _ _ _
-      = return (-1)
+      = do print "onChannelPtyWindowChangeCallback"
+           return (-1)
     onChannelExecRequestCallback _ _ _ _
-      = return 1
+      = do print "onChannelExecRequestCallback"
+           return 1
     onChannelEnvRequestCallback _ _ _ _ _
-      = return 1
+      = do print "onChannelEnvRequestCallback"
+           return 1
     onChannelSubsystemRequestCallback _ _ _ _
-      = return 1
+      = do print "onChannelSubsystemRequestCallback"
+           return 1
 
 -- | SSH channel data callback. Called when data is available on a channel
 --
@@ -337,3 +387,9 @@ foreign import ccall safe "misc.h ssh_new_channel_callbacks"
                            -> FunPtr ChannelEnvRequestCallback
                            -> FunPtr ChannelSubsystemRequestCallback
                            -> IO (Ptr ChannelCallbacks)
+
+foreign import ccall safe "misc.h ssh_free_channel_callbacks"
+  ssh_free_channel_callbacks :: Ptr ChannelCallbacks -> IO ()
+
+foreign import ccall safe "libssh/server.h ssh_set_channel_callbacks"
+  ssh_set_channel_callbacks :: Ptr Channel -> Ptr ChannelCallbacks -> IO CInt

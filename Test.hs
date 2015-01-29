@@ -14,6 +14,7 @@ import SSH.Server
 import SSH.LibSSH.Server
 import SSH.LibSSH.Session
 import SSH.LibSSH.Callbacks
+import SSH.LibSSH.Channel
 
 import Control.Concurrent.Async
 
@@ -127,4 +128,10 @@ forkSession session
            return 0
     channelOpenRequestSessionCallback _ _
       = do print "channelOpenRequestSessionCallback"
-           return nullPtr
+           chan <- ssh_channel_new
+           (cbs, cbs_free) <- prepareChannelCallbacks nullPtr defaultChannelCallbacksSet
+           x <- ssh_set_channel_callbacks chan cbs
+           when (x /= 0) $ do
+             print "creating channel failed"
+           print "creating channel succeeded"
+           return chan
