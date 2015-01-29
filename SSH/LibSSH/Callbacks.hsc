@@ -102,6 +102,8 @@ prepareChannelCallbacks userdata s
         c12 <- wrapChannelExecRequestCallback       (channelExecRequestCallback      s)
         c13 <- wrapChannelEnvRequestCallback        (channelEnvRequestCallback       s)
         c14 <- wrapChannelSubsystemRequestCallback  (channelSubsystemRequestCallback s)
+        print "c1"
+        print c1
         cbs <- ssh_new_channel_callbacks userdata c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14
         return ( cbs
                , do freeHaskellFunPtr c1
