@@ -109,9 +109,11 @@ forkSession session
   where
     authPasswordCallback _ user pass _
       = do print "authPasswordCallback"
-           peekCString user >>= print
-           peekCString pass >>= print
-           return (-1)
+           u <- peekCString user
+           p <- peekCString pass
+           if u == "user" && p == "pass"
+             then return 0
+             else return (-1)
     authNoneCallback _ user _
       = do print "authNoneCallback"
            peekCString user >>= print
@@ -119,8 +121,9 @@ forkSession session
     authPubkeyCallback _ _ _ _ _
       = do print "authPubkeyCallback"
            return (-1)
-    serviceRequestCallback _ _ _
+    serviceRequestCallback _ service _
       = do print "serviceRequestCallback"
+           peekCString service >>= print
            return 0
     channelOpenRequestSessionCallback _ _
       = do print "channelOpenRequestSessionCallback"
