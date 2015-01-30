@@ -8,6 +8,7 @@ import Control.Exception
 import Data.Typeable
 
 import Foreign.Ptr
+import Foreign.C
 import Foreign.C.String
 
 import SSH.Server
@@ -15,21 +16,23 @@ import SSH.LibSSH.Server
 import SSH.LibSSH.Session
 import SSH.LibSSH.Callbacks
 import SSH.LibSSH.Channel
+import SSH.LibSSH.Log
 
 import Control.Concurrent.Async
 
 main :: IO ()
 main
-  = do b <- ssh_bind_new
+  = do initLogging >>= print
+       b <- ssh_bind_new
+
+       abc <- newCString "abc"
+       l   <- newCString "4"
+       q   <- newCString "fasdasdasda"
+       _ssh_log 1 abc abc
 
        setRsaKey "/home/lars/repos/haskell-libssh/rsa" b
        setBindPort 8005 b
-       -- setLogVerbosity Warning b
-
-       icc <- wrapIncomingConnectionCallback (\_ _-> print "Incoming connection!")
-       print icc
-       cbs <- ssh_bind_new_callbacks icc
-       ssh_bind_set_callbacks b cbs nullPtr
+       setLogVerbosity Functions b
 
        print "Start listening."
        ssh_bind_listen b   >>= print
@@ -38,7 +41,9 @@ main
              $ do print "Wait for incoming connection."
                   -- this session is freed on exception in 'forkSession'
                   s <- ssh_new
+                  ssh_options_set s ssh_OPTIONS_LOG_VERBOSITY_STR l
                   ssh_bind_accept b s >>= print
+                  ssh_log s 0 q
                   a <- forkSession s
                   threadDelay 10000
                   return ()
@@ -135,3 +140,15 @@ forkSession session
              print "creating channel failed"
            print "creating channel succeeded"
            return chan
+
+initLogging :: IO CInt
+initLogging
+  = do fptr <- wrapLogCallback callback
+       ssh_set_log_callback fptr
+       ssh_set_log_level 4
+  where
+    callback prio function buffer _
+      = do print "CALLBACK"
+           f <- peekCString function
+           b <- peekCString buffer
+           putStrLn $ "LOG: " ++ show prio ++ " " ++ f ++ ": " ++ b

@@ -20,6 +20,37 @@ module SSH.LibSSH.Server (
   , ssh_BIND_OPTIONS_BANNER
   , ssh_BIND_OPTIONS_LOG_VERBOSITY
 
+  , SSH_OPTIONS_E
+  , ssh_OPTIONS_HOST                       
+  , ssh_OPTIONS_PORT                       
+  , ssh_OPTIONS_PORT_STR                   
+  , ssh_OPTIONS_FD                         
+  , ssh_OPTIONS_USER                       
+  , ssh_OPTIONS_SSH_DIR                    
+  , ssh_OPTIONS_IDENTITY                   
+  , ssh_OPTIONS_ADD_IDENTITY               
+  , ssh_OPTIONS_KNOWNHOSTS                 
+  , ssh_OPTIONS_TIMEOUT                    
+  , ssh_OPTIONS_TIMEOUT_USEC               
+  , ssh_OPTIONS_SSH1                       
+  , ssh_OPTIONS_SSH2                       
+  , ssh_OPTIONS_LOG_VERBOSITY              
+  , ssh_OPTIONS_LOG_VERBOSITY_STR          
+  , ssh_OPTIONS_CIPHERS_C_S                
+  , ssh_OPTIONS_CIPHERS_S_C                
+  , ssh_OPTIONS_COMPRESSION_C_S            
+  , ssh_OPTIONS_COMPRESSION_S_C            
+  , ssh_OPTIONS_PROXYCOMMAND               
+  , ssh_OPTIONS_BINDADDR                   
+  , ssh_OPTIONS_STRICTHOSTKEYCHECK         
+  , ssh_OPTIONS_COMPRESSION                
+  , ssh_OPTIONS_COMPRESSION_LEVEL          
+  , ssh_OPTIONS_KEY_EXCHANGE               
+  , ssh_OPTIONS_HOSTKEYS                   
+  , ssh_OPTIONS_GSSAPI_SERVER_IDENTITY     
+  , ssh_OPTIONS_GSSAPI_CLIENT_IDENTITY     
+  , ssh_OPTIONS_GSSAPI_DELEGATE_CREDENTIALS
+
   -- ** Log
   , SSH_LOG_E (..)
   , ssh_LOG_NOLOG
@@ -73,6 +104,8 @@ module SSH.LibSSH.Server (
 
   , ssh_get_pubkey_hash
 
+  , ssh_options_set
+
   ) where
 
 import Foreign.C
@@ -106,6 +139,39 @@ newtype SSH_BIND_OPTIONS_E = SSH_BIND_OPTIONS_E CInt
     ssh_BIND_OPTIONS_RSAKEY  = SSH_BIND_OPTIONS_RSAKEY,
     ssh_BIND_OPTIONS_BANNER  = SSH_BIND_OPTIONS_BANNER,
     ssh_BIND_OPTIONS_LOG_VERBOSITY  = SSH_BIND_OPTIONS_LOG_VERBOSITY
+}
+
+newtype SSH_OPTIONS_E = SSH_OPTIONS_E CInt
+#{enum SSH_OPTIONS_E, SSH_OPTIONS_E,
+    ssh_OPTIONS_HOST                        = SSH_OPTIONS_HOST,
+    ssh_OPTIONS_PORT                        = SSH_OPTIONS_PORT,
+    ssh_OPTIONS_PORT_STR                    = SSH_OPTIONS_PORT_STR,
+    ssh_OPTIONS_FD                          = SSH_OPTIONS_FD,
+    ssh_OPTIONS_USER                        = SSH_OPTIONS_USER,
+    ssh_OPTIONS_SSH_DIR                     = SSH_OPTIONS_SSH_DIR,
+    ssh_OPTIONS_IDENTITY                    = SSH_OPTIONS_IDENTITY,
+    ssh_OPTIONS_ADD_IDENTITY                = SSH_OPTIONS_ADD_IDENTITY,
+    ssh_OPTIONS_KNOWNHOSTS                  = SSH_OPTIONS_KNOWNHOSTS,
+    ssh_OPTIONS_TIMEOUT                     = SSH_OPTIONS_TIMEOUT,
+    ssh_OPTIONS_TIMEOUT_USEC                = SSH_OPTIONS_TIMEOUT_USEC,
+    ssh_OPTIONS_SSH1                        = SSH_OPTIONS_SSH1,
+    ssh_OPTIONS_SSH2                        = SSH_OPTIONS_SSH2,
+    ssh_OPTIONS_LOG_VERBOSITY               = SSH_OPTIONS_LOG_VERBOSITY,
+    ssh_OPTIONS_LOG_VERBOSITY_STR           = SSH_OPTIONS_LOG_VERBOSITY_STR,
+    ssh_OPTIONS_CIPHERS_C_S                 = SSH_OPTIONS_CIPHERS_C_S,
+    ssh_OPTIONS_CIPHERS_S_C                 = SSH_OPTIONS_CIPHERS_S_C,
+    ssh_OPTIONS_COMPRESSION_C_S             = SSH_OPTIONS_COMPRESSION_C_S,
+    ssh_OPTIONS_COMPRESSION_S_C             = SSH_OPTIONS_COMPRESSION_S_C,
+    ssh_OPTIONS_PROXYCOMMAND                = SSH_OPTIONS_PROXYCOMMAND,
+    ssh_OPTIONS_BINDADDR                    = SSH_OPTIONS_BINDADDR,
+    ssh_OPTIONS_STRICTHOSTKEYCHECK          = SSH_OPTIONS_STRICTHOSTKEYCHECK,
+    ssh_OPTIONS_COMPRESSION                 = SSH_OPTIONS_COMPRESSION,
+    ssh_OPTIONS_COMPRESSION_LEVEL           = SSH_OPTIONS_COMPRESSION_LEVEL,
+    ssh_OPTIONS_KEY_EXCHANGE                = SSH_OPTIONS_KEY_EXCHANGE,
+    ssh_OPTIONS_HOSTKEYS                    = SSH_OPTIONS_HOSTKEYS,
+    ssh_OPTIONS_GSSAPI_SERVER_IDENTITY      = SSH_OPTIONS_GSSAPI_SERVER_IDENTITY,
+    ssh_OPTIONS_GSSAPI_CLIENT_IDENTITY      = SSH_OPTIONS_GSSAPI_CLIENT_IDENTITY,
+    ssh_OPTIONS_GSSAPI_DELEGATE_CREDENTIALS = SSH_OPTIONS_GSSAPI_DELEGATE_CREDENTIALS
 }
 
 newtype SSH_LOG_E = SSH_LOG_E { ssh_log_e :: CInt }
@@ -213,3 +279,5 @@ foreign import ccall safe "libssh/libssh.h ssh_new"
 foreign import ccall safe "libssh/libssh.h ssh_free"
   ssh_free :: Ptr Session -> IO ()
 
+foreign import ccall safe "libssh/server.h ssh_options_set"
+  ssh_options_set :: Ptr Session -> SSH_OPTIONS_E -> Ptr a -> IO CInt
